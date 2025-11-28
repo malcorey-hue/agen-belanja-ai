@@ -42,11 +42,10 @@ if tombol_cari:
                 alat_search = SerperDevTool()
 
                 # --- C. SETUP OTAK ---
-                # Saya kembalikan ke 1.5-flash-001 agar lebih hemat kuota (anti error 429)
                 otak_gemini = LLM(
-                    model="gemini/gemini-2.0-flash-001",
+                    model="gemini/gemini-1.5-flash-001",
                     api_key=MY_GEMINI_KEY,
-                    temperature=0.7
+                    temperature=0.2 # Diturunkan biar lebih patuh/kaku
                 )
 
                 # --- D. DEFINISI AGEN ---
@@ -56,7 +55,7 @@ if tombol_cari:
                     backstory="Spesialis sourcing barang bangunan.",
                     tools=[alat_search],
                     llm=otak_gemini,
-                    max_rpm=10 # Pembatas kecepatan
+                    max_rpm=10
                 )
 
                 analyst = Agent(
@@ -67,16 +66,24 @@ if tombol_cari:
                     max_rpm=10
                 )
 
-                # --- E. DEFINISI TUGAS ---
+                # --- E. DEFINISI TUGAS (UPDATED!) ---
                 tugas_cari = Task(
-                    description=f"Cari harga real-time '{barang_input}' di area '{lokasi_input}' via Tokopedia/Shopee.",
-                    expected_output="List harga dan link.",
+                    description=f"Cari harga real-time '{barang_input}' di area '{lokasi_input}' via Tokopedia/Shopee. Kumpulkan URL LINK produknya secara lengkap.",
+                    expected_output="List harga, nama toko, dan URL Link lengkap.",
                     agent=hunter
                 )
 
+                # DI SINI PERUBAHAN UTAMANYA:
                 tugas_laporan = Task(
-                    description="Buat tabel perbandingan dan rekomendasi termurah.",
-                    expected_output="Laporan Markdown lengkap.",
+                    description="""
+                    Buat laporan lengkap rekomendasi pembelian.
+                    ATURAN PENTING:
+                    1. Buat Tabel Perbandingan Harga.
+                    2. Untuk rekomendasi terbaik, TULISKAN LINK (URL) SECARA LENGKAP DAN EKSPLISIT.
+                    3. Jangan gunakan format [Link](url), tapi tulis urlnya langsung (contoh: https://tokopedia.com/...).
+                    4. Pastikan Link tersebut ditaruh di baris baru agar mudah diklik/copy.
+                    """,
+                    expected_output="Laporan Markdown dengan URL Link yang terlihat jelas.",
                     agent=analyst
                 )
 
@@ -84,18 +91,21 @@ if tombol_cari:
                 tim = Crew(agents=[hunter, analyst], tasks=[tugas_cari, tugas_laporan])
                 hasil = tim.kickoff()
 
-                # --- G. TAMPILKAN HASIL DI LAYAR ---
+                # --- G. TAMPILKAN HASIL ---
                 st.success("Selesai! Berikut laporannya:")
                 st.markdown("---")
                 st.markdown(hasil)
 
                 # =========================================================
-                # FITUR DOWNLOAD WORD (.DOCX) - PERBAIKAN INDENTASI
+                # FITUR DOWNLOAD WORD (.DOCX)
                 # =========================================================
-                # Perhatikan: Bagian ini harus sejajar (lurus) dengan baris 'st.markdown(hasil)' di atas
-                
                 doc = Document()
                 doc.add_heading('Laporan Pengadaan Material', 0)
+                
+                # Kita tambahkan info barang yang dicari di judul
+                doc.add_paragraph(f"Pencarian: {barang_input} - {lokasi_input}")
+                doc.add_paragraph("-" * 50)
+                
                 doc.add_paragraph(str(hasil))
                 
                 bio = io.BytesIO()
@@ -110,4 +120,3 @@ if tombol_cari:
             
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
-
