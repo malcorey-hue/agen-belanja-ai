@@ -85,7 +85,17 @@ if tombol_cari:
                 st.success("Selesai! Berikut laporannya:")
                 st.markdown("---")
                 st.markdown(hasil)
-            
+            # ... (kode sebelumnya) ...
+                st.markdown(hasil)
+
+                # --- FITUR DOWNLOAD ---
+                st.download_button(
+                    label="📥 Download Laporan (.md)",
+                    data=str(hasil),
+                    file_name="laporan_belanja.md",
+                    mime="text/markdown"
+                )
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
+
 
