@@ -1,4 +1,7 @@
 crewai
+crewai[google-genai]
 crewai-tools
 streamlit
+
 google-generativeai
+litellm
