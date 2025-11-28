@@ -2,8 +2,8 @@ import streamlit as st
 import os
 from crewai import Agent, Task, Crew, LLM
 from crewai_tools import SerperDevTool
-from docx import Document  # <--- TAMBAHAN BARU
-import io                  # <--- TAMBAHAN BARU
+from docx import Document
+import io
 
 # =========================================================
 # 1. KONFIGURASI HALAMAN
@@ -34,18 +34,17 @@ if tombol_cari:
     else:
         with st.spinner('Sedang menghubungi Agen Hunter & Analyst... Mohon tunggu sebentar...'):
             try:
-                # --- A. AMBIL KUNCI DARI BRANKAS CLOUD (SECRETS) ---
-                # Pastikan Anda sudah setting Secrets di Streamlit Cloud
+                # --- A. AMBIL KUNCI DARI BRANKAS CLOUD ---
                 os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
                 MY_GEMINI_KEY = st.secrets["GOOGLE_API_KEY"]
                 
-                # --- B. DEFINISI ALAT (INI YANG TADI HILANG!) ---
-                # Kita wajib definisikan ini sebelum dipakai oleh Agent
+                # --- B. DEFINISI ALAT ---
                 alat_search = SerperDevTool()
 
                 # --- C. SETUP OTAK ---
+                # Saya kembalikan ke 1.5-flash-001 agar lebih hemat kuota (anti error 429)
                 otak_gemini = LLM(
-                    model="gemini/gemini-2.0-flash-001",
+                    model="gemini/gemini-1.5-flash-001",
                     api_key=MY_GEMINI_KEY,
                     temperature=0.7
                 )
@@ -55,15 +54,17 @@ if tombol_cari:
                     role='Material Hunter',
                     goal='Mencari link dan harga real-time',
                     backstory="Spesialis sourcing barang bangunan.",
-                    tools=[alat_search], # Di sini alat_search dipanggil
-                    llm=otak_gemini
+                    tools=[alat_search],
+                    llm=otak_gemini,
+                    max_rpm=10 # Pembatas kecepatan
                 )
 
                 analyst = Agent(
                     role='Cost Analyst',
                     goal='Memilih penawaran terbaik',
                     backstory="Auditor harga yang teliti.",
-                    llm=otak_gemini
+                    llm=otak_gemini,
+                    max_rpm=10
                 )
 
                 # --- E. DEFINISI TUGAS ---
@@ -83,39 +84,29 @@ if tombol_cari:
                 tim = Crew(agents=[hunter, analyst], tasks=[tugas_cari, tugas_laporan])
                 hasil = tim.kickoff()
 
-                # ... (kode sebelumnya: st.markdown(hasil)) ...
-             #st.markdown(hasil)
-
-             # =========================================================
-             # FITUR DOWNLOAD WORD (.DOCX)
-             # =========================================================
-             # 1. Buat Dokumen Word di Memori
-             doc = Document()
-             doc.add_heading('Laporan Pengadaan Material', 0)
-             doc.add_paragraph(str(hasil)) # Masukkan hasil AI ke Word
-             
-             # 2. Simpan ke Buffer (Bukan ke Harddisk, biar cepat)
-             bio = io.BytesIO()
-             doc.save(bio)
-             
-             # 3. Tombol Download
-             st.download_button(
-                 label="📥 Download Laporan (.docx)",
-                 data=bio.getvalue(),
-                 file_name="laporan_belanja.docx",
-                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-             )
-                
-                # --- G. TAMPILKAN HASIL ---
+                # --- G. TAMPILKAN HASIL DI LAYAR ---
                 st.success("Selesai! Berikut laporannya:")
                 st.markdown("---")
                 st.markdown(hasil)
-            # ... (kode sebelumnya) ...
-                st.markdown(hasil)
 
+                # =========================================================
+                # FITUR DOWNLOAD WORD (.DOCX) - PERBAIKAN INDENTASI
+                # =========================================================
+                # Perhatikan: Bagian ini harus sejajar (lurus) dengan baris 'st.markdown(hasil)' di atas
+                
+                doc = Document()
+                doc.add_heading('Laporan Pengadaan Material', 0)
+                doc.add_paragraph(str(hasil))
+                
+                bio = io.BytesIO()
+                doc.save(bio)
+                
+                st.download_button(
+                    label="📥 Download Laporan (.docx)",
+                    data=bio.getvalue(),
+                    file_name="laporan_belanja.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+            
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
-
-
-
-
