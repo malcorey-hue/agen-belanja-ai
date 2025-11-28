@@ -4,7 +4,7 @@ from crewai import Agent, Task, Crew, LLM
 from crewai_tools import SerperDevTool
 
 # =========================================================
-# 1. KONFIGURASI HALAMAN (Judul Tab Browser)
+# 1. KONFIGURASI HALAMAN
 # =========================================================
 st.set_page_config(page_title="Agen Material Pro", page_icon="🏗️")
 
@@ -15,51 +15,45 @@ st.title("🏗️ Agen Pengadaan Material Bangunan")
 st.markdown("---")
 st.write("Masukkan kebutuhan Anda, biarkan AI yang keliling toko online.")
 
-# Kolom Input (Biar rapi, kita bagi 2 kolom)
 col1, col2 = st.columns(2)
-
 with col1:
     barang_input = st.text_input("Nama Barang", placeholder="Contoh: Semen Gresik 40kg")
-
 with col2:
     lokasi_input = st.text_input("Lokasi", placeholder="Contoh: Jakarta Selatan")
 
-# Tombol Eksekusi
 tombol_cari = st.button("🚀 Mulai Pencarian")
 
 # =========================================================
-# 3. LOGIKA AGEN (Hanya jalan kalau tombol ditekan)
+# 3. LOGIKA AGEN
 # =========================================================
 if tombol_cari:
-   # ... (kode sebelumnya sama)
-
-        with st.spinner('Sedang menghubungi Agen Hunter & Analyst...'):
-            
-            # --- BAGIAN INI YANG DIUBAH (AMBIL DARI BRANKAS) ---
-            # Kita tidak lagi menulis kunci di sini.
-            # Kita suruh dia baca dari 'st.secrets'
-            
+    if not barang_input or not lokasi_input:
+        st.warning("Mohon isi nama barang dan lokasi dulu ya, Bos!")
+    else:
+        with st.spinner('Sedang menghubungi Agen Hunter & Analyst... Mohon tunggu sebentar...'):
             try:
-                # Mengambil kunci dari Brankas Cloud
-                serper_key = st.secrets["SERPER_API_KEY"]
-                gemini_key = st.secrets["GOOGLE_API_KEY"]
+                # --- A. AMBIL KUNCI DARI BRANKAS CLOUD (SECRETS) ---
+                # Pastikan Anda sudah setting Secrets di Streamlit Cloud
+                os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
+                MY_GEMINI_KEY = st.secrets["GOOGLE_API_KEY"]
                 
-                os.environ["SERPER_API_KEY"] = serper_key
-                
+                # --- B. DEFINISI ALAT (INI YANG TADI HILANG!) ---
+                # Kita wajib definisikan ini sebelum dipakai oleh Agent
+                alat_search = SerperDevTool()
+
+                # --- C. SETUP OTAK ---
                 otak_gemini = LLM(
                     model="gemini/gemini-1.5-flash-001",
-                    api_key=gemini_key, # Pakai variabel kunci yang baru
+                    api_key=MY_GEMINI_KEY,
                     temperature=0.7
                 )
-                
-                # ... (Sisa kode ke bawah sama persis, tidak perlu diubah)
 
-                # --- DEFINISI AGEN ---
+                # --- D. DEFINISI AGEN ---
                 hunter = Agent(
                     role='Material Hunter',
                     goal='Mencari link dan harga real-time',
                     backstory="Spesialis sourcing barang bangunan.",
-                    tools=[alat_search],
+                    tools=[alat_search], # Di sini alat_search dipanggil
                     llm=otak_gemini
                 )
 
@@ -70,7 +64,7 @@ if tombol_cari:
                     llm=otak_gemini
                 )
 
-                # --- DEFINISI TUGAS ---
+                # --- E. DEFINISI TUGAS ---
                 tugas_cari = Task(
                     description=f"Cari harga real-time '{barang_input}' di area '{lokasi_input}' via Tokopedia/Shopee.",
                     expected_output="List harga dan link.",
@@ -83,11 +77,11 @@ if tombol_cari:
                     agent=analyst
                 )
 
-                # --- EKSEKUSI ---
+                # --- F. EKSEKUSI ---
                 tim = Crew(agents=[hunter, analyst], tasks=[tugas_cari, tugas_laporan])
                 hasil = tim.kickoff()
 
-                # --- TAMPILKAN HASIL ---
+                # --- G. TAMPILKAN HASIL ---
                 st.success("Selesai! Berikut laporannya:")
                 st.markdown("---")
                 st.markdown(hasil)
