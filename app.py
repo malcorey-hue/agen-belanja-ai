@@ -43,7 +43,7 @@ if tombol_cari:
 
                 # --- C. SETUP OTAK ---
                 otak_gemini = LLM(
-                    model="gemini/gemini-1.5-flash-001",
+                    model="gemini/gemini-2.0-flash-001",
                     api_key=MY_GEMINI_KEY,
                     temperature=0.2 # Diturunkan biar lebih patuh/kaku
                 )
@@ -120,3 +120,4 @@ if tombol_cari:
             
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
+
