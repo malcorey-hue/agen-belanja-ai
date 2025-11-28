@@ -84,7 +84,7 @@ if tombol_cari:
                 hasil = tim.kickoff()
 
                 # ... (kode sebelumnya: st.markdown(hasil)) ...
-             st.markdown(hasil)
+             #st.markdown(hasil)
 
              # =========================================================
              # FITUR DOWNLOAD WORD (.DOCX)
@@ -115,6 +115,7 @@ if tombol_cari:
 
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
+
 
 
 
