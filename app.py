@@ -2,6 +2,8 @@ import streamlit as st
 import os
 from crewai import Agent, Task, Crew, LLM
 from crewai_tools import SerperDevTool
+from docx import Document  # <--- TAMBAHAN BARU
+import io                  # <--- TAMBAHAN BARU
 
 # =========================================================
 # 1. KONFIGURASI HALAMAN
@@ -81,6 +83,29 @@ if tombol_cari:
                 tim = Crew(agents=[hunter, analyst], tasks=[tugas_cari, tugas_laporan])
                 hasil = tim.kickoff()
 
+                # ... (kode sebelumnya: st.markdown(hasil)) ...
+             st.markdown(hasil)
+
+             # =========================================================
+             # FITUR DOWNLOAD WORD (.DOCX)
+             # =========================================================
+             # 1. Buat Dokumen Word di Memori
+             doc = Document()
+             doc.add_heading('Laporan Pengadaan Material', 0)
+             doc.add_paragraph(str(hasil)) # Masukkan hasil AI ke Word
+             
+             # 2. Simpan ke Buffer (Bukan ke Harddisk, biar cepat)
+             bio = io.BytesIO()
+             doc.save(bio)
+             
+             # 3. Tombol Download
+             st.download_button(
+                 label="📥 Download Laporan (.docx)",
+                 data=bio.getvalue(),
+                 file_name="laporan_belanja.docx",
+                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+             )
+                
                 # --- G. TAMPILKAN HASIL ---
                 st.success("Selesai! Berikut laporannya:")
                 st.markdown("---")
@@ -88,14 +113,8 @@ if tombol_cari:
             # ... (kode sebelumnya) ...
                 st.markdown(hasil)
 
-                # --- FITUR DOWNLOAD ---
-                st.download_button(
-                    label="📥 Download Laporan (.md)",
-                    data=str(hasil),
-                    file_name="laporan_belanja.md",
-                    mime="text/markdown"
-                )
             except Exception as e:
                 st.error(f"Terjadi kesalahan: {e}")
+
 
 
